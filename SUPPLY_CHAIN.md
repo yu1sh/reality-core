@@ -13,7 +13,7 @@ The exact inputs are recorded in [toolchain-manifest.json](toolchain-manifest.js
   class-file major 61;
 - Linux x64 archive SHA-256
   `be7668bc030d578b83d6d5ef9221d6d6729bbbca8cf94a7d52e16ac68b5a5a35`;
-- Gradle 9.3.0 and its verified launcher distribution; and
+- Gradle 8.8 and its verified launcher distribution; and
 - JUnit Jupiter 5.11.4 and JUnit Platform Launcher 1.11.4 at test scope only.
 
 The former current-JVM escape hatch is forbidden. The exact JDK must be
@@ -49,7 +49,7 @@ and Gradle module metadata. It rejects unsafe ZIP names, duplicate or
 unsorted entries, non-fixed entry timestamps, local paths, build timestamps,
 private-key markers, and content changes. The POM must have the exact
 coordinates, name, description, Apache-2.0 URL, and no runtime dependency.
-The module metadata must be created by Gradle 9.3.0 and contain no runtime or
+The module metadata must be created by Gradle 8.8 and contain no runtime or
 test dependency.
 
 The runtime SBOM is canonical CycloneDX 1.5 JSON. It contains the root

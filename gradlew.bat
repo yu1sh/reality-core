@@ -1,8 +1,8 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
-set "PINNED_GRADLE_VERSION=9.3.0"
-set "PINNED_GRADLE_SHA256=0d585f69da091fc5b2beced877feab55a3064d43b8a1d46aeb07996b0915e0e0"
+set "PINNED_GRADLE_VERSION=8.8"
+set "PINNED_GRADLE_SHA256=a4b4158601f8636cdeeab09bd76afb640030bb5b144aafe261a5e8af027dc612"
 if defined GRADLE_VERSION if not "%GRADLE_VERSION%"=="%PINNED_GRADLE_VERSION%" (
   echo Refusing Gradle %GRADLE_VERSION%; only Gradle %PINNED_GRADLE_VERSION% is allowed. 1>&2
   exit /b 1

@@ -213,9 +213,9 @@ def _expected_workflow() -> dict[str, Any]:
                         },
                     },
                     {
-                        "name": "Set up Gradle 9.3.0",
+                        "name": "Set up Gradle 8.8",
                         "uses": "gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1",
-                        "with": {"gradle-version": "9.3.0"},
+                        "with": {"gradle-version": "8.8"},
                     },
                     {
                         "name": "Verify exact toolchain and source head",

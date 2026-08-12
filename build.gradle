@@ -24,8 +24,8 @@ def expectedJavaRelease = 17
 def expectedClassMajor = 61
 def expectedArchiveSha256 = 'be7668bc030d578b83d6d5ef9221d6d6729bbbca8cf94a7d52e16ac68b5a5a35'
 def expectedArchiveUrl = 'https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20%2B8/OpenJDK17U-jdk_x64_linux_hotspot_17.0.20_8.tar.gz'
-def expectedGradleVersion = '9.3.0'
-def expectedManifestSha256 = 'afa1849495d444be4271e97977097790d432bede4e2d3f26ba642a2cfe1c288d'
+def expectedGradleVersion = '8.8'
+def expectedManifestSha256 = '3252f9e2d49f96463a1a9ae81f042e964f24bafe12cf61916932f021273ad503'
 
 def assertExactToolchain = {
     if (gradle.gradleVersion != expectedGradleVersion) {

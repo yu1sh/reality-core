@@ -26,7 +26,7 @@
 ## Supply-chain and public-source evidence
 
 - [ ] Actions use the approved full commit SHAs.
-- [ ] Gradle 9.3.0 and Java 17 are unchanged.
+- [ ] Gradle 8.8 and Java 17 are unchanged.
 - [ ] Fresh-runner online strict verification is followed by offline strict verification.
 - [ ] Runtime SBOM is canonical, runtime-only, timestamp/path-free, and has matching two-build SHA-256 values.
 - [ ] Public-source scanner and self-tests pass; no secret, binary, or local absolute path was added.

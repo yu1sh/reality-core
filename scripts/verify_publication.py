@@ -185,8 +185,8 @@ def _verify_module(path: Path, artifact_directory: Path) -> None:
     if not isinstance(created_by, dict) or list(created_by) != ["gradle"]:
         raise PublicationError("module creator is not canonical")
     gradle = created_by["gradle"]
-    if not isinstance(gradle, dict) or list(gradle) != ["version"] or gradle.get("version") != "9.3.0":
-        raise PublicationError("module was not created by Gradle 9.3.0")
+    if not isinstance(gradle, dict) or list(gradle) != ["version"] or gradle.get("version") != "8.8":
+        raise PublicationError("module was not created by Gradle 8.8")
     variants = document["variants"]
     if not isinstance(variants, list) or not variants:
         raise PublicationError("module variants are missing")

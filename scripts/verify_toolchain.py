@@ -25,7 +25,7 @@ EXPECTED_JAVA_VERSION = "17.0.20"
 EXPECTED_JAVA_RUNTIME_VERSION = "17.0.20+8"
 EXPECTED_JAVA_VENDOR = "Eclipse Adoptium"
 EXPECTED_ARCHIVE_SHA256 = "be7668bc030d578b83d6d5ef9221d6d6729bbbca8cf94a7d52e16ac68b5a5a35"
-EXPECTED_MANIFEST_SHA256 = "afa1849495d444be4271e97977097790d432bede4e2d3f26ba642a2cfe1c288d"
+EXPECTED_MANIFEST_SHA256 = "3252f9e2d49f96463a1a9ae81f042e964f24bafe12cf61916932f021273ad503"
 EXPECTED_ARCHIVE_URL = (
     "https://github.com/adoptium/temurin17-binaries/releases/download/"
     "jdk-17.0.20%2B8/OpenJDK17U-jdk_x64_linux_hotspot_17.0.20_8.tar.gz"
@@ -105,7 +105,7 @@ def _read_manifest(path: Path) -> dict[str, Any]:
                 "sha256": EXPECTED_ARCHIVE_SHA256,
             },
         },
-        "gradle": {"version": "9.3.0"},
+        "gradle": {"version": "8.8"},
     }
     if document != expected:
         raise VerificationError("toolchain manifest differs from the reviewed exact values")

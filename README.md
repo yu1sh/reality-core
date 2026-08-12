@@ -49,7 +49,7 @@ declaring an actor, locale, or streamer mode in packet metadata.
 ## Build
 
 Use the reviewed Eclipse Temurin 17.0.20+8 toolchain and the included Gradle
-9.3.0 launcher. The build is intentionally fail-closed when the exact JDK is
+8.8 launcher. The build is intentionally fail-closed when the exact JDK is
 not active:
 
 ```sh
@@ -72,14 +72,14 @@ otherwise provision the exact reviewed JDK and run the verifier before a
 build; a different vendor, patch level, runtime, or mixed tool path is a
 hard failure.
 
-The launcher accepts only the verified Gradle 9.3.0 distribution cache. It
+The launcher accepts only the verified Gradle 8.8 distribution cache. It
 rejects `REALITY_GRADLE_HOME`, `GRADLE_HOME`, and PATH executables even when
 they report the expected version. Its fallback download requires HTTPS/TLS
-and verifies the official Gradle 9.3.0 binary ZIP against the pinned SHA-256
+and verifies the official Gradle 8.8 binary ZIP against the pinned SHA-256
 before extraction; an offline checkout must retain that verified ZIP in the
 launcher cache.
 The pinned ZIP checksum is
-`0d585f69da091fc5b2beced877feab55a3064d43b8a1d46aeb07996b0915e0e0`.
+`a4b4158601f8636cdeeab09bd76afb640030bb5b144aafe261a5e8af027dc612`.
 The Windows launcher does not auto-download and fails safely when the
 verified ZIP is not supplied.
 
@@ -115,7 +115,7 @@ offline strict clean check in the same fresh Gradle home.
 ## Public supply-chain gate
 
 The public workflow is intentionally small and pinned. It runs on a fresh
-Ubuntu runner with exact Temurin 17.0.20+8 and Gradle 9.3.0, verifies the
+Ubuntu runner with exact Temurin 17.0.20+8 and Gradle 8.8, verifies the
 reviewed JDK archive, performs an online strict dependency-verification
 `clean check`, then repeats the same check offline. It also reruns the exact
 28 unit/contract tests, Javadoc, all-main-class Java 17 bytecode, `jdeps`,
