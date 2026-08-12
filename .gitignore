@@ -1,0 +1,9 @@
+.gradle/
+build/
+ci-state/
+*.download.*
+*.ok
+out/
+*.iml
+.idea/
+.vscode/

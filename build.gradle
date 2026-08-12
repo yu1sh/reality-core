@@ -1,0 +1,237 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
+import java.security.MessageDigest
+import java.nio.file.Files
+
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+group = 'io.github.yu1sh.reality'
+version = '0.1.0-SNAPSHOT'
+
+def expectedJavaVersion = '17.0.20'
+def expectedJavaRuntimeVersion = '17.0.20+8'
+def expectedJavaVendor = 'Eclipse Adoptium'
+def expectedJavaRelease = 17
+def expectedClassMajor = 61
+def expectedArchiveSha256 = 'be7668bc030d578b83d6d5ef9221d6d6729bbbca8cf94a7d52e16ac68b5a5a35'
+def expectedArchiveUrl = 'https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20%2B8/OpenJDK17U-jdk_x64_linux_hotspot_17.0.20_8.tar.gz'
+def expectedGradleVersion = '9.3.0'
+def expectedManifestSha256 = 'afa1849495d444be4271e97977097790d432bede4e2d3f26ba642a2cfe1c288d'
+
+def assertExactToolchain = {
+    if (gradle.gradleVersion != expectedGradleVersion) {
+        throw new GradleException('Gradle ' + gradle.gradleVersion + ' is not the reviewed ' + expectedGradleVersion)
+    }
+    File manifestFile = layout.projectDirectory.file('toolchain-manifest.json').asFile
+    if (Files.isSymbolicLink(manifestFile.toPath()) || !manifestFile.isFile()) {
+        throw new GradleException('toolchain-manifest.json must be a regular file')
+    }
+    String manifestSha256 = MessageDigest.getInstance('SHA-256').digest(manifestFile.bytes)
+            .collect { byteValue -> String.format('%02x', byteValue & 0xff) }.join()
+    if (manifestSha256 != expectedManifestSha256) {
+        throw new GradleException('toolchain-manifest.json bytes do not match the reviewed digest')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    def expectedManifest = [
+            schemaVersion: 1,
+            java: [
+                    distribution: 'temurin',
+                    vendor: expectedJavaVendor,
+                    version: expectedJavaRuntimeVersion,
+                    release: expectedJavaRelease,
+                    classMajor: expectedClassMajor,
+                    archive: [url: expectedArchiveUrl, sha256: expectedArchiveSha256]
+            ],
+            gradle: [version: expectedGradleVersion]
+    ]
+    if (manifest != expectedManifest) {
+        throw new GradleException('toolchain-manifest.json is not the reviewed exact manifest')
+    }
+    if (System.getProperty('java.version') != expectedJavaVersion
+            || System.getProperty('java.runtime.version') != expectedJavaRuntimeVersion
+            || System.getProperty('java.vendor') != expectedJavaVendor) {
+        throw new GradleException('Gradle must run on Eclipse Adoptium 17.0.20+8')
+    }
+
+    String javaHomeValue = System.getenv('JAVA_HOME')
+    if (javaHomeValue == null || javaHomeValue.isBlank()) {
+        throw new GradleException('JAVA_HOME must point to the reviewed JDK')
+    }
+    File declaredHome = new File(javaHomeValue).canonicalFile
+    File runtimeHome = new File(System.getProperty('java.home')).canonicalFile
+    if (declaredHome != runtimeHome) {
+        throw new GradleException('JAVA_HOME and the Gradle runtime java.home must be identical')
+    }
+    File binDirectory = new File(declaredHome, 'bin').canonicalFile
+    ['java', 'javac', 'javadoc', 'jdeps'].each { toolName ->
+        String executableName = System.getProperty('os.name').toLowerCase().contains('win')
+                ? toolName + '.exe'
+                : toolName
+        File tool = new File(binDirectory, executableName)
+        if (!tool.isFile() || !tool.canExecute() || tool.canonicalFile.parentFile != binDirectory) {
+            throw new GradleException(toolName + ' must resolve from the exact JAVA_HOME/bin')
+        }
+    }
+}
+
+// Run before task selection so -x verifyExactToolchain cannot bypass the gate.
+assertExactToolchain()
+
+def verifyExactToolchain = tasks.register('verifyExactToolchain') {
+    group = 'verification'
+    description = 'Fails unless the build runs on the reviewed Gradle and Eclipse Adoptium JDK.'
+    inputs.file(layout.projectDirectory.file('toolchain-manifest.json'))
+    doLast { assertExactToolchain() }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    withSourcesJar()
+    withJavadocJar()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.4'
+}
+
+def runtimeClasspath = configurations.runtimeClasspath
+def runtimeSbomOutput = layout.buildDirectory.file('reports/sbom/reality-core-runtime-sbom.json')
+
+def sha256Hex = { File file ->
+    MessageDigest digest = MessageDigest.getInstance('SHA-256')
+    file.withInputStream { input ->
+        byte[] buffer = new byte[8192]
+        int read
+        while ((read = input.read(buffer)) != -1) {
+            digest.update(buffer, 0, read)
+        }
+    }
+    digest.digest().collect { byteValue -> String.format('%02x', byteValue & 0xff) }.join()
+}
+
+tasks.register('runtimeSbom') {
+    group = 'verification'
+    description = 'Writes a deterministic CycloneDX JSON SBOM for the runtime boundary only.'
+    inputs.files(runtimeClasspath)
+    outputs.file(runtimeSbomOutput)
+    dependsOn verifyExactToolchain
+
+    doLast {
+        String rootPurl = "pkg:maven/${project.group}/${project.name}@${project.version}"
+        def runtimeArtifacts = runtimeClasspath.resolvedConfiguration.resolvedArtifacts
+        if (!runtimeArtifacts.isEmpty()) {
+            throw new GradleException('reality-core must have zero runtime dependencies')
+        }
+        def runtimeComponents = runtimeArtifacts.collect { artifact ->
+            def module = artifact.moduleVersion.id
+            String groupId = module.group.toString()
+            String name = module.name.toString()
+            String version = module.version.toString()
+            String purl = "pkg:maven/${groupId}/${name}@${version}"
+            def component = new LinkedHashMap()
+            component.put('type', 'library')
+            component.put('group', groupId)
+            component.put('name', name)
+            component.put('version', version)
+            component.put('scope', 'required')
+            component.put('bom-ref', purl)
+            component.put('purl', purl)
+            def hashes = new LinkedHashMap()
+            hashes.put('alg', 'SHA-256')
+            hashes.put('content', sha256Hex(artifact.file))
+            component.put('hashes', [hashes])
+            component
+        }.sort { left, right ->
+            [left['group'], left['name'], left['version'], left['purl']]
+                    <=> [right['group'], right['name'], right['version'], right['purl']]
+        }
+
+        def rootComponent = new LinkedHashMap()
+        rootComponent.put('type', 'library')
+        rootComponent.put('group', project.group.toString())
+        rootComponent.put('name', project.name)
+        rootComponent.put('version', project.version.toString())
+        rootComponent.put('bom-ref', rootPurl)
+        rootComponent.put('purl', rootPurl)
+
+        def metadata = new LinkedHashMap()
+        metadata.put('component', rootComponent)
+
+        def dependency = new LinkedHashMap()
+        dependency.put('ref', rootPurl)
+        dependency.put('dependsOn', runtimeComponents.collect { it['bom-ref'] })
+
+        def document = new LinkedHashMap()
+        document.put('bomFormat', 'CycloneDX')
+        document.put('specVersion', '1.5')
+        document.put('version', 1)
+        document.put('metadata', metadata)
+        document.put('components', runtimeComponents)
+        document.put('dependencies', [dependency])
+
+        File output = runtimeSbomOutput.get().asFile
+        output.parentFile.mkdirs()
+        output.setText(JsonOutput.prettyPrint(JsonOutput.toJson(document)) + '\n', 'UTF-8')
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    dependsOn verifyExactToolchain
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+
+tasks.withType(Test).configureEach {
+    dependsOn verifyExactToolchain
+    useJUnitPlatform()
+    reports.html.required = false
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('runtimeSbom')
+}
+
+tasks.withType(Javadoc).configureEach {
+    dependsOn verifyExactToolchain
+    options.encoding = 'UTF-8'
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    dependsOn verifyExactToolchain
+}
+
+publishing {
+    repositories {
+        maven {
+            name = 'staging'
+            url = layout.buildDirectory.dir('staging/repository')
+        }
+    }
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            pom {
+                name = 'reality-core'
+                description = 'Minecraft-independent contracts for the Reality life simulation platform'
+                licenses {
+                    license {
+                        name = 'Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+            }
+        }
+    }
+}
